@@ -1,0 +1,248 @@
+app:
+  name: "polymarket-copy-research"
+  database_url: "sqlite:///data/processed/pmcopy.sqlite3"
+  raw_data_dir: "data/raw"
+  log_level: "INFO"
+
+api:
+  gamma_base_url: "https://gamma-api.polymarket.com"
+  data_base_url: "https://data-api.polymarket.com"
+  clob_base_url: "https://clob.polymarket.com"
+  timeout_seconds: 20
+  max_retries: 3
+  backoff_seconds: 1.0
+  min_request_interval_seconds: 0.20
+  user_agent: "pmcopy-research/0.1 public-readonly"
+
+wallet_discovery:
+  enabled: true
+  max_wallets_total: 5000
+
+  categories:
+    sports: true
+    politics: true
+    crypto: true
+    finance: true
+    culture: false
+    economics: false
+    other: false
+
+  # Enable locally only after creating the ignored config/wallets_seed.txt.
+  include_manual_seeds: false
+  include_leaderboards: true
+  include_market_holders: true
+  include_market_activity: true
+  include_public_search_profiles: false
+
+  leaderboards:
+    enabled: true
+    max_pages: 20
+    page_size: 100
+    sorts: ["pnl", "volume", "activity"]
+
+  markets:
+    max_markets_per_category: 300
+    include_active: true
+    include_closed: true
+    min_volume: 10000
+    min_liquidity: 1000
+    sort_by: "volume"
+
+  holders:
+    enabled: true
+    max_holders_per_market: 200
+
+  activity:
+    enabled: true
+    max_activity_per_market: 500
+
+  filters:
+    min_source_count: 1
+    require_recent_activity: false
+
+wallet_filters:
+  min_trades: 100
+  min_markets: 20
+  min_active_days: 14
+  min_total_volume: 1000
+  min_total_pnl: 0
+  min_edge_on_volume: null
+  min_roi_on_volume: null
+  min_return_on_max_capital_at_risk: null
+  min_return_on_average_capital_at_risk: null
+  exposure_confidence_filter: []
+  max_drawdown: null
+  max_top_1_market_pnl_share: 0.60
+  max_top_5_market_pnl_share: 0.85
+  include_categories: []
+  exclude_categories: []
+  exclude_likely_market_makers: true
+  exclude_likely_latency_bots: true
+  exclude_lucky_wallets: true
+  exclude_insufficient_sample: true
+
+wallet_ingestion:
+  trades:
+    enabled: true
+    page_size: 500
+    max_pages: 20
+  activity:
+    enabled: true
+    page_size: 500
+    max_pages: 5
+  positions:
+    enabled: true
+    page_size: 500
+    max_pages: 20
+  closed_positions:
+    enabled: true
+    page_size: 500
+    max_pages: 20
+  value:
+    enabled: true
+
+classification:
+  likely_market_maker:
+    min_volume: 1000000
+    min_trades: 5000
+    max_roi_on_volume: 0.01
+    both_sides_same_market_threshold: 0.25
+
+  likely_latency_bot:
+    positive_10s_negative_1m: true
+    sports_weight: 0.3
+
+  lucky_wallet:
+    max_trades: 100
+    max_markets: 20
+    min_top_1_market_pnl_share: 0.60
+
+data_quality:
+  levels:
+    exact_orderbook:
+      rank: 4
+      description: "Historical or live orderbook data was available."
+    price_history_proxy:
+      rank: 3
+      description: "Nearest price history point was used."
+    midpoint_proxy:
+      rank: 2
+      description: "Midpoint proxy was used."
+    last_price_proxy:
+      rank: 1
+      description: "Last trade price proxy was used."
+    insufficient_data:
+      rank: 0
+      description: "Insufficient data."
+
+  default_allowed_levels:
+    - exact_orderbook
+    - price_history_proxy
+
+  min_rank_for_backtest: 3
+  warn_if_proxy_share_above: 0.50
+
+alpha_decay:
+  delays_seconds: [10, 30, 60, 300, 900, 3600, 21600, 86400]
+  max_entry_degradation: 0.03
+  max_spread: 0.03
+  default_position_size_usd: 2
+  exit_rules: ["hold_to_resolution", "fixed_24h", "latest_available", "reconstructed_wallet_lifecycle"]
+  default_exit_rule: "hold_to_resolution"
+  exit_delay_seconds: null
+  min_exit_fraction: 0.5
+  max_holding_hours: null
+  allow_partial_exits: true
+  sizing_mode: "fixed_usd"
+  copy_ratio: 0.001
+  warmup_days: 90
+  allowed_data_quality_levels: ["exact_orderbook", "price_history_proxy"]
+  historical_mode: "price_history_only"
+  exact_orderbook_max_age_seconds: 30
+  max_price_history_distance_seconds: 86400
+  price_history_max_distance_seconds: 3600
+  midpoint_proxy_max_age_seconds: 300
+  proxy_spread_assumption: 0.01
+  proxy_slippage_bps: 50
+  min_observations_for_copyability: 10
+  scoring_delay_short_seconds: 60
+  scoring_delay_medium_seconds: 300
+
+sizing:
+  default_lifecycle_sizing_mode: "proportional_to_whale_with_cap"
+  copy_ratio: 0.001
+  max_position_budget_usd: 10
+  min_trade_usd: 1
+  execute_small_trades: false
+  allow_position_cap_partial_fill: true
+
+fees:
+  default_fee_rate: 0.04
+  fee_rates_by_category:
+    sports: 0.03
+    crypto: 0.072
+    finance: 0.04
+    politics: 0.04
+  assume_taker: true
+  makers_pay_fees: false
+
+date_splits:
+  enabled: true
+  train_start: null
+  train_end: null
+  validation_start: null
+  validation_end: null
+  test_start: null
+  test_end: null
+
+walk_forward:
+  enabled: false
+  lookback_days: 60
+  test_window_days: 7
+  rebalance_frequency_days: 7
+  min_trades_in_lookback: 30
+  selection_metric: "copyability_score"
+
+backtest:
+  copy_mode: "diagnostic_trade_level"
+  mode: "in_sample"
+  initial_capital: 100
+  position_size_usd: 2
+  copy_delay_seconds: 60
+  entry_delay_seconds: 60
+  exit_delay_seconds: 60
+  max_entry_degradation: 0.02
+  max_spread: 0.03
+  max_market_exposure_usd: 8
+  max_wallet_exposure_usd: 20
+  max_category_exposure_usd: 30
+  max_daily_loss_usd: 10
+  duplicate_signal_window_seconds: 600
+  exit_rule: "hold_to_resolution"
+  skip_likely_market_makers: true
+  skip_likely_latency_bots: true
+  skip_lucky_wallets: true
+  skip_insufficient_sample: false
+  allowed_data_quality_levels: ["exact_orderbook", "price_history_proxy"]
+  min_copyability_score: 0
+  include_categories: []
+  exclude_categories: []
+  diagnostics_mode: false
+
+sensitivity:
+  enabled: true
+  copy_delay_seconds: [10, 60, 300, 900]
+  max_entry_degradation: [0.01, 0.02, 0.03]
+  max_spread: [0.01, 0.02, 0.03, 0.05]
+  position_size_usd: [1, 2, 5]
+  max_market_exposure_usd: [5, 8, 10]
+  large_grid_threshold: 100
+  too_few_trades_threshold: 5
+  high_drawdown_fraction: 0.20
+  high_skipped_signal_rate: 0.75
+  high_proxy_data_share: 0.50
+  concentration_threshold: 0.80
+
+reports:
+  min_trades_for_verdict: 20
+  high_drawdown_fraction: 0.20

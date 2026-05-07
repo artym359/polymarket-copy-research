@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.env
+.streamlit/secrets.toml
+config/wallets_seed.txt
+data/processed/*.sqlite3
+data/processed/*.sqlite3-journal
+data/processed/*.sqlite3-shm
+data/processed/*.sqlite3-wal
+data/raw/*
+!data/raw/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+*.log
